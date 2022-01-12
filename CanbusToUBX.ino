@@ -25,7 +25,7 @@ void setup()
 #if(BCAN==1)
     while (CAN_OK != CAN0.begin(CAN_125KBPS, MCP_8MHz))              // init can bus : baudrate = 500k
 #else
-    while (CAN_OK != CAN0.begin(CAN_500KBPS, MCP_8MHz))              // init can bus : baudrate = 500k
+    while (CAN_OK != CAN0.begin(CAN_100KBPS, MCP_8MHz))              // init can bus : baudrate = 500k
 #endif
 
     {
@@ -67,7 +67,7 @@ unsigned char rearTickData[] = {
 #if(BCAN==1)
 float unit = 2.777;  // 0.01km/hから1mm/sに変換(10000 / 60 / 60)
 #else
-float unit = 637.0 * 4.0 / 60.0 / 60.0 * 10.0; // 60km/hで637RPMなので、1km/hあたりのRPSを算出して、パルスに変換（1回転4パルス）
+float unit = 637.0 * 8.0 / 60.0 / 60.0 * 10.0; // 60km/hで637RPMなので、1km/hあたりのRPSを算出して、パルスに変換（1回転8パルス）
 #endif
 unsigned char fwd = 0x00;
 int cnt = 0;
@@ -139,7 +139,7 @@ void loop()
         //Serial.println(canId, HEX);
         
         // 車輪別車速
-        if(canId == 0x01D0) {
+        if(canId == 0x0CE) {
             cnt++;
             // 50hzは高負荷すぎる可能性があるので10hzに調整する小細工
             if(cnt != 5)
@@ -166,9 +166,7 @@ void loop()
 
             // RL
             // 0.01km/hからパルスに変換してセット
-            unsigned long kmph = (unsigned long)(buf[5] & 0xF4) >> 3;
-            kmph = kmph + (buf[4] << 5);
-            kmph = kmph + ((buf[3] & 0x03) << 13);
+            unsigned long kmph = (unsigned long)(buf[5]*256+buf[4]);
 
             // パルスへの変換
             // （unitは1km/s当たりのパルス数のため、10Hzであることも加味して、スケールで調整)
@@ -180,9 +178,7 @@ void loop()
 
             // RR
             // 0.01km/hからパルスに変換してセット
-            unsigned long kmph2 = (unsigned long)(buf[7] & 0xF0) >> 4;
-            kmph2 = kmph2 + (buf[6] << 4);
-            kmph2 = kmph2 + ((buf[5] & 0x07) << 12);
+            unsigned long kmph2 = (unsigned long)(buf[7]*256+buf[6]);
 
             // パルスへの変換
             kmph2 = kmph2 * unit;
